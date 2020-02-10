@@ -28,13 +28,21 @@ def forward_fully_connected(x, w, b):
     - out: output, of shape (N, M)
     - cache: (x, w, b)
     """
-    out = None
+    out = []
     #############################################################################
     # TODO: Implémentez la propagation avant d'une couche pleinement connectée. #
     #  Stockez le résultat dans out.                                            #
     # Vous devrez reformer les entrées en lignes.                               #
     #############################################################################
+    nb_batch = x.shape[0]
+    for i in range(nb_batch):
+      xflat = x[i].flatten()
+      output = xflat.dot(w)
+      output += b
+      out.append(output)
+    out = np.array(out)
 
+            
     #############################################################################
     #                             FIN DE VOTRE CODE                             #
     #############################################################################
@@ -68,7 +76,7 @@ def backward_fully_connected(dout, cache):
     # TODO: Implémentez la rétropropagation pour une couche pleinement          #
     #  connectée.                                                               #
     #############################################################################
-
+    
     #############################################################################
     #                             FIN DE VOTRE CODE                             #
     #############################################################################
