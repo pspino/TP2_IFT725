@@ -597,10 +597,11 @@ def softmax_loss(x, y, scale=1.0):
     #############################################################################
     N = x.shape[0]
     
-    probs = np.exp(x)/np.sum(np.exp(x))
+    probs = np.exp(x)/np.sum(np.exp(x) ,axis=1, keepdims=True)
     print(np.sum(probs))
     good_scores = -np.log(probs[np.arange(N), y])
     loss = np.sum(good_scores)
+    loss /= N
 
     #############################################################################
     #                             FIN DE VOTRE CODE                             #
