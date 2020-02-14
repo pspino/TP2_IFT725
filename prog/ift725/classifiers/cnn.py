@@ -4,8 +4,8 @@
 import numpy as np
 
 from ift725.layers import *
-from ift725.fast_layers import *
-from ift725.layer_utils import *
+from ift725.quick_layers import *
+from ift725.layer_combo import *
 
 
 class ThreeLayerConvolutionalNet(object):
