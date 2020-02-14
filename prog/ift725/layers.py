@@ -73,9 +73,9 @@ def backward_fully_connected(dout, cache):
     #  connectée.                                                               #
     #############################################################################
     nb_batch = x.shape[0]
-    tempX = x.reshape(x.shape[0],x.shape[1]*x.shape[2]).T
+    tempX = x.reshape(x.shape[0],np.prod(x.shape[1:])).T
     
-    dx = np.dot(dout, w.T).reshape(x.shape[0],x.shape[1],x.shape[2])
+    dx = np.dot(dout, w.T).reshape(x.shape)
     dw = np.dot(tempX, dout)
     db = np.sum(dout, axis=0)
     #############################################################################
@@ -598,7 +598,6 @@ def softmax_loss(x, y, scale=1.0):
     N = x.shape[0]
     
     probs = np.exp(x)/np.sum(np.exp(x) ,axis=1, keepdims=True)
-    print(np.sum(probs))
     good_scores = -np.log(probs[np.arange(N), y])
     loss = np.sum(good_scores)
     loss /= N
