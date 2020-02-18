@@ -34,6 +34,10 @@ def forward_fully_connected(x, w, b):
     #  Stockez le résultat dans out.                                            #
     # Vous devrez reformer les entrées en lignes.                               #
     #############################################################################
+	
+    nb_batch = x.shape[0]
+    xflat = x.reshape(nb_batch, w.shape[0])
+    out = np.dot(xflat, w) + b
 
     #############################################################################
     #                             FIN DE VOTRE CODE                             #
@@ -68,7 +72,12 @@ def backward_fully_connected(dout, cache):
     # TODO: Implémentez la rétropropagation pour une couche pleinement          #
     #  connectée.                                                               #
     #############################################################################
-
+    nb_batch = x.shape[0]
+    tempX = x.reshape(x.shape[0],np.prod(x.shape[1:])).T
+    
+    dx = np.dot(dout, w.T).reshape(x.shape)
+    dw = np.dot(tempX, dout)
+    db = np.sum(dout, axis=0)
     #############################################################################
     #                             FIN DE VOTRE CODE                             #
     #############################################################################
@@ -90,7 +99,7 @@ def forward_relu(x):
     #############################################################################
     # TODO: Implémentez la propagation pour une couche ReLU.                    #
     #############################################################################
-
+    out = np.maximum(0, x)
     #############################################################################
     #                             FIN DE VOTRE CODE                             #
     #############################################################################
@@ -113,7 +122,7 @@ def backward_relu(dout, cache):
     #############################################################################
     # TODO: Implémentez la rétropropagation pour une couche ReLU.               #
     #############################################################################
-
+    dx = np.multiply(dout, cache)
     #############################################################################
     #                             FIN DE VOTRE CODE                             #
     #############################################################################
@@ -547,12 +556,14 @@ def svm_loss(x, y):
     - loss: Scalar giving the loss
     - dx: Gradient of the loss with respect to x
     """
-    N = x.shape[0]
+    N, C = x.shape
     #############################################################################
     # TODO: La perte SVM (ou Hinge Loss) en vous inspirant du tp1 mais sans     #
     #       régularisation                                                      #
     #############################################################################
-
+    margin = np.maximum(0, x - x[np.arange(N), y][:, np.newaxis] + 1.0)
+    margin[np.arange(x.shape[0]),y] = 0
+    loss = np.mean(np.dot(margin, np.ones(C).T))
     #############################################################################
     #                             FIN DE VOTRE CODE                             #
     #############################################################################
@@ -584,7 +595,12 @@ def softmax_loss(x, y, scale=1.0):
     # TODO: La perte softmax en vous inspirant du tp1 mais sans régularisation  #
     #                                                                           #
     #############################################################################
-
+    N = x.shape[0]
+    
+    probs = np.exp(x)/np.sum(np.exp(x) ,axis=1, keepdims=True)
+    good_scores = -np.log(probs[np.arange(N), y])
+    loss = np.sum(good_scores)
+    loss /= N
 
     #############################################################################
     #                             FIN DE VOTRE CODE                             #

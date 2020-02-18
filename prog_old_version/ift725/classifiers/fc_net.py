@@ -54,7 +54,12 @@ class TwoLayerNeuralNet(object):
         # self.params['b1'] = ...                                                  #
         # ...                                                                      #
         ############################################################################
+        
+        self.params['W1'] = np.random.randn(input_dim, hidden_dim) * weight_scale
+        self.params['W2'] = np.random.randn(hidden_dim, num_classes) * weight_scale
 
+        self.params['b1'] = np.zeros((input_dim, hidden_dim))
+        self.params['b2'] = np.zeros((hidden_dim, num_classes))
 
         ############################################################################
         #                             FIN DE VOTRE CODE                            #
@@ -91,6 +96,9 @@ class TwoLayerNeuralNet(object):
         #  deux couches.                                                           #
         #  NOTES: score est la sortie du réseau *SANS SOFTMAX*                     #
         ############################################################################
+        scores_layer_1, cache_input_layer = forward_fully_connected(X, self.params['W1'], self.params['b1'])
+        scores_layer_1, cached_relu = forward_relu(scores_layer_1)
+        scores, cache_hidden_layer = forward_fully_connected(scores_layer_1, self.params['W2'], self.params['b2'])
 
         ############################################################################
         #                             FIN DE VOTRE CODE                            #
@@ -123,6 +131,17 @@ class TwoLayerNeuralNet(object):
         # Note, les gradients doivent être stochez dans le dictionnaire `grads`    #
         #       du type grads['W1']=...                                            #
         ############################################################################
+        loss, dout = softmax_loss(scores, y)
+
+        dx, dw_hidden, db_hidden = backward_fully_connected(dout, cache_hidden_layer)
+        dx = backward_relu(dx, cached_relu)
+        _, dw_input, db_input = backward_fully_connected(dx, cache_input_layer)
+
+        grads['W2'] = dw_hidden
+        grads['W1'] = dw_input
+        grads['b2'] = db_hidden
+        grads['b1'] = db_input
+
         ############################################################################
         #                             FIN DE VOTRE CODE                            #
         ############################################################################
