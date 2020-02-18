@@ -54,7 +54,7 @@ class TwoLayerNeuralNet(object):
         # self.params['b1'] = ...                                                  #
         # ...                                                                      #
         ############################################################################
-        
+
         self.params['W1'] = np.random.randn(input_dim, hidden_dim) * weight_scale
         self.params['W2'] = np.random.randn(hidden_dim, num_classes) * weight_scale
 
@@ -132,13 +132,14 @@ class TwoLayerNeuralNet(object):
         #       du type grads['W1']=...                                            #
         ############################################################################
         loss, dout = softmax_loss(scores, y)
+        loss += 0.5*self.reg*np.sum(self.params['W1']**2) + 0.5*self.reg*np.sum(self.params['W2']**2)
 
         dx, dw_hidden, db_hidden = backward_fully_connected(dout, cache_hidden_layer)
         dx = backward_relu(dx, cached_relu)
         _, dw_input, db_input = backward_fully_connected(dx, cache_input_layer)
 
-        grads['W2'] = dw_hidden
-        grads['W1'] = dw_input
+        grads['W2'] = dw_hidden + self.reg*self.params['W2']
+        grads['W1'] = dw_input + self.reg*self.params['W1']
         grads['b2'] = db_hidden
         grads['b1'] = db_input
 
