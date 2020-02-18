@@ -38,6 +38,7 @@ def forward_fully_connected(x, w, b):
     nb_batch = x.shape[0]
     xflat = x.reshape(nb_batch, w.shape[0])
     out = np.dot(xflat, w) + b
+    
 
     #############################################################################
     #                             FIN DE VOTRE CODE                             #
