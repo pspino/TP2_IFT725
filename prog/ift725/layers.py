@@ -36,8 +36,9 @@ def forward_fully_connected(x, w, b):
     #############################################################################
 	
     nb_batch = x.shape[0]
-    xflat = x.reshape(nb_batch, w.shape[0])
-    out = np.dot(xflat, w) + b
+    D = np.prod(x.shape[1:])
+    xflat = x.reshape(nb_batch, D)
+    out = xflat.dot(w) + b
     
 
     #############################################################################
@@ -596,10 +597,12 @@ def softmax_loss(x, y, scale=1.0):
     # TODO: La perte softmax en vous inspirant du tp1 mais sans régularisation  #
     #                                                                           #
     #############################################################################
-    N = x.shape[0]
     
-    probs = np.exp(x)/np.sum(np.exp(x) ,axis=1, keepdims=True)
-    good_scores = -np.log(probs[np.arange(N), y])
+    N = x.shape[0]
+
+    probs = np.exp(x) / np.sum(np.exp(x) ,axis=1, keepdims=True)
+    good_scores = probs[range(N), y]
+    good_scores = -np.log(good_scores)
     loss = np.sum(good_scores)
     loss /= N
 
