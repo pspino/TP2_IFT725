@@ -235,7 +235,7 @@ class FullyConnectedNeuralNet(object):
         # dropout layer so that the layer knows the dropout probability and the mode
         # (train / test). You can pass the same dropout_param to each dropout layer.
         self.dropout_param = {}
-        if self.use_dropout:
+        if self.dropout_param is not None:
             self.dropout_param = {'mode': 'train', 'p': dropout}
             if seed is not None:
                 self.dropout_param['seed'] = seed
@@ -287,7 +287,6 @@ class FullyConnectedNeuralNet(object):
         # normalisation par lots; passer self.bn_params[1] pour la propagation de  #
         # la deuxième couche de normalisation par lots, etc.                       #
         ############################################################################
-
         cache = {}
         previous_score = X
         for i in range(1, self.num_layers + 1):
@@ -296,6 +295,10 @@ class FullyConnectedNeuralNet(object):
                                                                               self.params[self.pn('b', i)])
             if i != self.num_layers:
                 previous_score, cache[self.pn('relu', i)] = forward_relu(layer_score)
+
+                if self.dropout_param is not None:
+                    layer_score, cache[self.pn('dropout', i)] = forward_inverted_dropout(layer_score,
+                                                                                         self.dropout_param)
         scores = layer_score
 
         ############################################################################
