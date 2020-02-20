@@ -132,16 +132,16 @@ class TwoLayerNeuralNet(object):
         #       du type grads['W1']=...                                            #
         ############################################################################
         loss, dout = softmax_loss(scores, y)
-        loss += 0.5*self.reg*np.sum(self.params['W1']**2) + 0.5*self.reg*np.sum(self.params['W2']**2)
+        loss += 0.5 * self.reg * np.sum(self.params['W1'] ** 2) + 0.5 * self.reg * np.sum(self.params['W2'] ** 2)
 
         dx, dw_hidden, db_hidden = backward_fully_connected(dout, cache_hidden_layer)
         dx = backward_relu(dx, cached_relu)
         _, dw_input, db_input = backward_fully_connected(dx, cache_input_layer)
 
-        grads['W2'] = dw_hidden + self.reg*self.params['W2']
-        grads['W1'] = dw_input + self.reg*self.params['W1']
-        grads['b2'] = db_hidden + self.reg*self.params['b2']
-        grads['b1'] = db_input + self.reg*self.params['b1']
+        grads['W2'] = dw_hidden + self.reg * self.params['W2']
+        grads['W1'] = dw_input + self.reg * self.params['W1']
+        grads['b2'] = db_hidden + self.reg * self.params['b2']
+        grads['b1'] = db_input + self.reg * self.params['b1']
 
         ############################################################################
         #                             FIN DE VOTRE CODE                            #
@@ -219,13 +219,13 @@ class FullyConnectedNeuralNet(object):
         #           self.params[param_name_b] = ...                                #
         ############################################################################
 
-        for i, layer in enumerate(hidden_dims):     
-          layer_input_dim = self.params[self.pn('W', i)].shape[1] if i > 0 else input_dim
-          self.params[self.pn('W',i+1)] = np.random.randn(layer_input_dim, layer) * weight_scale
-          self.params[self.pn('b',i+1)] = np.zeros(layer)
-        
-        self.params[self.pn('W',self.num_layers)] = np.random.randn(layer, num_classes) * weight_scale
-        self.params[self.pn('b',self.num_layers)] = np.zeros(num_classes) 
+        for i, layer in enumerate(hidden_dims):
+            layer_input_dim = self.params[self.pn('W', i)].shape[1] if i > 0 else input_dim
+            self.params[self.pn('W', i + 1)] = np.random.randn(layer_input_dim, layer) * weight_scale
+            self.params[self.pn('b', i + 1)] = np.zeros(layer)
+
+        self.params[self.pn('W', self.num_layers)] = np.random.randn(layer, num_classes) * weight_scale
+        self.params[self.pn('b', self.num_layers)] = np.zeros(num_classes)
 
         ############################################################################
         #                             FIN DE VOTRE CODE                            #
@@ -235,7 +235,7 @@ class FullyConnectedNeuralNet(object):
         # dropout layer so that the layer knows the dropout probability and the mode
         # (train / test). You can pass the same dropout_param to each dropout layer.
         self.dropout_param = {}
-        if self.use_dropout:
+        if self.dropout_param is not None:
             self.dropout_param = {'mode': 'train', 'p': dropout}
             if seed is not None:
                 self.dropout_param['seed'] = seed
@@ -287,15 +287,20 @@ class FullyConnectedNeuralNet(object):
         # normalisation par lots; passer self.bn_params[1] pour la propagation de  #
         # la deuxième couche de normalisation par lots, etc.                       #
         ############################################################################
-        
         cache = {}
         previous_score = X
-        for i in range(1, self.num_layers+1):
-          layer_score, cache[self.pn('layer', i)] = forward_fully_connected(previous_score, self.params[self.pn('W',i)], self.params[self.pn('b', i)])
-          if(i != self.num_layers):
-            previous_score, cache[self.pn('relu', i)] = forward_relu(layer_score)
+        for i in range(1, self.num_layers + 1):
+            layer_score, cache[self.pn('layer', i)] = forward_fully_connected(previous_score,
+                                                                              self.params[self.pn('W', i)],
+                                                                              self.params[self.pn('b', i)])
+            if i != self.num_layers:
+                previous_score, cache[self.pn('relu', i)] = forward_relu(layer_score)
+
+                if self.dropout_param is not None:
+                    layer_score, cache[self.pn('dropout', i)] = forward_inverted_dropout(layer_score,
+                                                                                         self.dropout_param)
         scores = layer_score
-        
+
         ############################################################################
         #                             FIN DE VOTRE CODE                            #
         ############################################################################
@@ -321,16 +326,16 @@ class FullyConnectedNeuralNet(object):
         # pour le gradient.                                                        #
         ############################################################################
         loss, dout = softmax_loss(scores, y)
-        for i in range(1, self.num_layers+1):
-          loss += 0.5*self.reg*np.sum(self.params[self.pn('W', i)]**2) 
+        for i in range(1, self.num_layers + 1):
+            loss += 0.5 * self.reg * np.sum(self.params[self.pn('W', i)] ** 2)
 
         dx = dout
-        for i in reversed(range(1, self.num_layers+1)):
-          dx, dw_hidden, db_hidden = backward_fully_connected(dx, cache[self.pn('layer', i)])
-          grads[self.pn('W',i)] = dw_hidden + self.reg*self.params[self.pn('W',i)]
-          grads[self.pn('b',i)] = db_hidden + self.reg*self.params[self.pn('b',i)]
-          if(i != 1):
-            dx = backward_relu(dx, cache[self.pn('relu', i-1)])
+        for i in reversed(range(1, self.num_layers + 1)):
+            dx, dw_hidden, db_hidden = backward_fully_connected(dx, cache[self.pn('layer', i)])
+            grads[self.pn('W', i)] = dw_hidden + self.reg * self.params[self.pn('W', i)]
+            grads[self.pn('b', i)] = db_hidden + self.reg * self.params[self.pn('b', i)]
+            if i != 1:
+                dx = backward_relu(dx, cache[self.pn('relu', i - 1)])
 
         ############################################################################
         #                             FIN DE VOTRE CODE                            #
