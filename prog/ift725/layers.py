@@ -404,13 +404,39 @@ def forward_convolutional_naive(x, w, b, conv_param, verbose=0):
     #############################################################################
     # TODO: Implémentez la propagation pour la couche de convolution.           #
     # Astuces: vous pouvez utiliser la fonction np.pad pour le remplissage.     #
-    #############################################################################
+    #############################################################################  
+    pad = conv_param['pad']
+    stride = conv_param['stride']
+    N, C, H, W = x.shape
+    F, C, HH, WW = w.shape
+    Hp = int(1 + (H+2*pad-HH) / stride)
+    Wp = int(1 + (W+2*pad-WW) / stride)
+    
+    out = np.zeros((N, F, Hp, Wp))    
+    x_padded = np.pad(x,pad,mode="constant")
+  
+    for n in range(N):
+      x_temp = x_padded[n]
+      for f in range(F):
+        w_temp = w[f]
+        b_temp = b[f]
+        for h in range(0,Hp,stride):
+          for w in range(Wp):
+            for c in range(C):       
+              h_start = h*stride
+              h_end = h_start+F+1
+              w_start = w*stride
+              w_end = w_start+F+1
 
+              x_slice = x_temp[c,h_start:h_end,w_start:w_end]
+              multiple = np.multiply(x_slice,w_temp[c])
+              score = np.sum(multiple)
 
+              out[n, f, h, w] = score + b_temp
+    cache = (x, w, b, conv_param)
     #############################################################################
     #                             FIN DE VOTRE CODE                             #
     #############################################################################
-    cache = None
 
     return out, cache
 
