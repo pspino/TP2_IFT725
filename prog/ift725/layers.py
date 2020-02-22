@@ -394,7 +394,7 @@ def forward_convolutional_naive(x, w, b, conv_param, verbose=0):
     #############################################################################
     #                             FIN DE VOTRE CODE                             #
     #############################################################################
-    cache = (x_pad, w, b, conv_param)
+    cache = None
 
     return out, cache
 
@@ -446,6 +446,7 @@ def forward_max_pooling_naive(x, pool_param):
     #############################################################################
     #                             FIN DE VOTRE CODE                             #
     #############################################################################
+    cache = None
     return out, cache
 
 
