@@ -408,7 +408,7 @@ def forward_convolutional_naive(x, w, b, conv_param, verbose=0):
     pad = conv_param['pad']
     stride = conv_param['stride']
     N, C, H, W = x.shape
-    F, C, HH, WW = w.shape
+    F, _, HH, WW = w.shape
     Hp = int(1 + (H+2*pad-HH) / stride)
     Wp = int(1 + (W+2*pad-WW) / stride)
     
@@ -416,7 +416,7 @@ def forward_convolutional_naive(x, w, b, conv_param, verbose=0):
   
     for n in range(N):
       for f in range(F):
-        for i in range(0,Hp):
+        for i in range(Hp):
           for j in range(Wp):
             for c in range(C):                  
               i_start = i*stride
@@ -429,7 +429,7 @@ def forward_convolutional_naive(x, w, b, conv_param, verbose=0):
               multiple = np.multiply(x_slice,w[f,c])
               score = np.sum(multiple)
 
-              out[n, f, i, j] += score
+              out[n,f,i,j] += score
         out[n,f] += b[f] 
     cache = (x, w, b, conv_param)
     #############################################################################
@@ -456,7 +456,47 @@ def backward_convolutional_naive(dout, cache):
     #############################################################################
     # TODO: Implémentez la rétropropagation pour la couche de convolution       #
     #############################################################################
+    x, w, b, conv_param = cache
+    pad = conv_param['pad']
+    stride = conv_param['stride']
+    N, C, H, W = x.shape
+    F, _, HH, WW = w.shape
+    _, _, Hp, Wp = dout.shape
+    
+    dx = np.zeros(x.shape)
+    dw = np.zeros(w.shape)
+    db = np.zeros(b.shape)
 
+    db = np.sum(dout, axis=(0, 2, 3))
+    
+    x_padded = np.pad(x, ((0,), (0,), (pad,), (pad, )), 'constant')
+    
+    for n in range(N):       
+      for f in range(F):   
+        for i in range(HH): 
+          for j in range(WW):
+            for k in range(Hp): 
+              for l in range(Wp):
+                for c in range(C): 
+                  dw[f,c,i,j] += dout[n, f, k, l] * x_padded[n, c, stride*i+k, stride*j+l]
+
+    #dout_padded = np.pad(dout, ((0,), (0,), (WW-stride,), (HH-stride, )), 'constant')
+    dx_padded = np.pad(dx, ((0,), (0,), (pad,), (pad, )), 'constant')
+
+    #temp_w = np.zeros(w.shape)
+    
+    for n in range(N):       
+      for f in range(F):   
+        for i in range(Hp): 
+          for j in range(Wp):
+            for k in range(HH):
+              for l in range(WW):
+                for c in range(C):
+                  dx_padded[n,c,stride*i+k,stride*j+l] += dout[n,f,i,j] * w[f,c,k,l]
+    if pad:
+        dx = dx_padded[:,:,pad:-pad,pad:-pad]
+    else:
+        dx = dx_padded
     #############################################################################
     #                             FIN DE VOTRE CODE                             #
     #############################################################################
