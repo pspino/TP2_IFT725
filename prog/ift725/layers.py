@@ -397,26 +397,24 @@ def forward_convolutional_naive(x, w, b, conv_param, verbose=0):
     Wp = int(1 + (W+2*pad-WW) / stride)
     
     out = np.zeros((N, F, Hp, Wp))    
-    x_padded = np.pad(x,pad,mode="constant")
   
     for n in range(N):
-      x_temp = x_padded[n]
       for f in range(F):
-        w_temp = w[f]
-        b_temp = b[f]
-        for h in range(0,Hp,stride):
-          for w in range(Wp):
-            for c in range(C):       
-              h_start = h*stride
-              h_end = h_start+F+1
-              w_start = w*stride
-              w_end = w_start+F+1
-
-              x_slice = x_temp[c,h_start:h_end,w_start:w_end]
-              multiple = np.multiply(x_slice,w_temp[c])
+        for i in range(0,Hp):
+          for j in range(Wp):
+            for c in range(C):                  
+              i_start = i*stride
+              i_end = i_start+HH
+              j_start = j*stride
+              j_end = j_start+WW
+              
+              x_slice = np.pad(x[n,c],pad,mode="constant")
+              x_slice = x_slice[i_start:i_end,j_start:j_end]
+              multiple = np.multiply(x_slice,w[f,c])
               score = np.sum(multiple)
 
-              out[n, f, h, w] = score + b_temp
+              out[n, f, i, j] += score
+        out[n,f] += b[f] 
     cache = (x, w, b, conv_param)
     #############################################################################
     #                             FIN DE VOTRE CODE                             #
