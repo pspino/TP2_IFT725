@@ -480,10 +480,7 @@ def backward_convolutional_naive(dout, cache):
                 for c in range(C): 
                   dw[f,c,i,j] += dout[n, f, k, l] * x_padded[n, c, stride*i+k, stride*j+l]
 
-    #dout_padded = np.pad(dout, ((0,), (0,), (WW-stride,), (HH-stride, )), 'constant')
     dx_padded = np.pad(dx, ((0,), (0,), (pad,), (pad, )), 'constant')
-
-    #temp_w = np.zeros(w.shape)
     
     for n in range(N):       
       for f in range(F):   
@@ -522,11 +519,28 @@ def forward_max_pooling_naive(x, pool_param):
     #############################################################################
     # TODO: Implémentez la propagation pour une couche de de max pooling        #
     #############################################################################
+    N, C, H, W = x.shape
+    pool_height = pool_param['pool_height']
+    pool_width = pool_param['pool_width']
+    stride = pool_param['stride']
+    Hp = int((H+2-pool_height) / stride)
+    Wp = int((W+2-pool_width) / stride)
+    
+    out = np.zeros((N, C, Hp, Wp))
+    for n in range(N):
+      for c in range(C):
+        for i in range(Hp):
+          for j in range(Wp):
+            i_start = i*stride
+            i_end = i_start+pool_height
+            j_start = j*stride
+            j_end = j_start+pool_width
 
+            out[n,c,i,j] = np.max(x[n,c,i_start:i_end,j_start:j_end])
     #############################################################################
     #                             FIN DE VOTRE CODE                             #
     #############################################################################
-    cache = None
+    cache = (x, pool_param)
     return out, cache
 
 
@@ -545,7 +559,27 @@ def backward_max_pooling_naive(dout, cache):
     #############################################################################
     # TODO: Implémentez la rétropropagation pour une couche de max pooling.     #
     #############################################################################
+    x, pool_param = cache
+    N, C, H, W = x.shape
+    _, _, Hp, Wp = dout.shape
+    pool_height = pool_param['pool_height']
+    pool_width = pool_param['pool_width']
+    stride = pool_param['stride']
 
+    dx = np.zeros(x.shape)
+    for n in range(N):
+      for c in range(C):
+        for i in range(Hp):
+          for j in range(Wp):
+            i_start = i*stride
+            i_end = i_start+pool_height
+            j_start = j*stride
+            j_end = j_start+pool_width
+            
+            temp_dx = np.zeros((pool_height, pool_width)) 
+            idx = np.unravel_index(np.argmax(x[n,c,i_start:i_end,j_start:j_end]),temp_dx.shape)        
+            temp_dx[idx] = dout[n,c,i,j]
+            dx[n,c,i_start:i_end,j_start:j_end] = temp_dx
     #############################################################################
     #                             FIN DE VOTRE CODE                             #
     #############################################################################
