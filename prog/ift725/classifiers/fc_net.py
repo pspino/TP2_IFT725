@@ -326,10 +326,10 @@ class FullyConnectedNeuralNet(object):
         # régularisation L2 inclus un facteur de 0.5 pour simplifier l'expression  #
         # pour le gradient.                                                        #
         ############################################################################
-        loss, dout = softmax_loss(scores, y)
+        
+        loss, dout = softmax_loss(scores, y)        
         for i in range(1, self.num_layers + 1):
             loss += 0.5 * self.reg * np.sum(self.params[self.pn('W', i)] ** 2)
-
         dx = dout
         for i in reversed(range(1, self.num_layers + 1)):
             dx, dw_hidden, db_hidden = backward_fully_connected(dx, cache[self.pn('layer', i)])
