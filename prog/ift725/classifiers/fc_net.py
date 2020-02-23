@@ -168,7 +168,7 @@ class FullyConnectedNeuralNet(object):
 
     def __init__(self, hidden_dims, input_dim=3 * 32 * 32, num_classes=10,
                  dropout=0, use_batchnorm=False, reg=0.0,
-                 weight_scale=1e-2, dtype=np.float32, seed=None):
+                 weight_scale=1e-2, dtype=np.float32, seed=123):
         """
         Initialize a new FullyConnectedNet.
 
@@ -235,7 +235,8 @@ class FullyConnectedNeuralNet(object):
         # dropout layer so that the layer knows the dropout probability and the mode
         # (train / test). You can pass the same dropout_param to each dropout layer.
         self.dropout_param = {}
-        if self.dropout_param is not None:
+
+        if self.use_dropout:
             self.dropout_param = {'mode': 'train', 'p': dropout}
             if seed is not None:
                 self.dropout_param['seed'] = seed
@@ -267,7 +268,7 @@ class FullyConnectedNeuralNet(object):
 
         # Set train/test mode for batchnorm params and dropout param since they
         # behave differently during training and testing.
-        if self.dropout_param is not None:
+        if self.use_dropout:
             self.dropout_param['mode'] = mode
         if self.use_batchnorm:
             for bn_param in self.bn_params:
@@ -296,9 +297,9 @@ class FullyConnectedNeuralNet(object):
             if i != self.num_layers:
                 previous_score, cache[self.pn('relu', i)] = forward_relu(layer_score)
 
-                if self.dropout_param is not None:
-                    layer_score, cache[self.pn('dropout', i)] = forward_inverted_dropout(layer_score,
-                                                                                         self.dropout_param)
+                if self.use_dropout:
+                    previous_score, cache[self.pn('dropout', i)] = forward_inverted_dropout(previous_score,
+                                                                                            self.dropout_param)
         scores = layer_score
 
         ############################################################################
@@ -335,6 +336,8 @@ class FullyConnectedNeuralNet(object):
             grads[self.pn('W', i)] = dw_hidden + self.reg * self.params[self.pn('W', i)]
             grads[self.pn('b', i)] = db_hidden + self.reg * self.params[self.pn('b', i)]
             if i != 1:
+                if self.use_dropout:
+                    dx = backward_inverted_dropout(dx, cache[self.pn('dropout', i - 1)])
                 dx = backward_relu(dx, cache[self.pn('relu', i - 1)])
 
         ############################################################################
