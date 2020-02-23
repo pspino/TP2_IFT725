@@ -478,10 +478,10 @@ def backward_convolutional_naive(dout, cache):
         for f in range(F):
             for i in range(HH):
                 for j in range(WW):
-                    for k in range(Hp):
+                    for k in range(Hp): 
                         for l in range(Wp):
                             for c in range(C):
-                                dw[f, c, i, j] += dout[n, f, k, l] * x_padded[n, c, stride * i + k, stride * j + l]
+                                dw[f, c, i, j] += dout[n, f, k, l] * x_padded[n, c, stride * k + i, stride * l + j]
 
     dx_padded = np.pad(dx, ((0,), (0,), (pad,), (pad,)), 'constant')
 
