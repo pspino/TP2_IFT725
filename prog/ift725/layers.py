@@ -334,7 +334,7 @@ def forward_inverted_dropout(x, dropout_param):
     ###########################################################################
     if mode == 'train':
         mask = np.random.binomial(1, p, size=x.shape) / p
-        out = x*mask
+        out = x * mask
         cache = (dropout_param, mask)
     elif mode == 'test':
         out = x
@@ -364,7 +364,7 @@ def backward_inverted_dropout(dout, cache):
     #  le dropout inversé (inverted dropout).                                 #
     ###########################################################################
     if mode == 'train':
-        dx = dout*mask
+        dx = dout * mask
     elif mode == 'test':
         dx = dout
 

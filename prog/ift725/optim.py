@@ -1,6 +1,8 @@
 # Code adapté de projets académiques de la professeur Fei Fei Li et de ses étudiants Andrej Karpathy, Justin Johnson et autres.
 # Version finale rédigée par Carl Lemaire, Vincent Ducharme et Pierre-Marc Jodoin
 
+import sys
+
 import numpy as np
 
 """
@@ -70,8 +72,8 @@ def sgd_momentum(w, dw, config=None):
     # utiliser et mettre à jour la vitesse v.                                   #
     #############################################################################
     m, lr = config.get('momentum'), config.get('learning_rate')
-    v = m * v - lr * dw
-    next_w = w + v
+    v = m*v + dw
+    next_w = w - lr*v
     #############################################################################
     #                             FIN DE VOTRE CODE                             #
     #############################################################################
