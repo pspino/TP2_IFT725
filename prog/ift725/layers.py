@@ -34,10 +34,12 @@ def forward_fully_connected(x, w, b):
     #  Stockez le résultat dans out.                                            #
     # Vous devrez reformer les entrées en lignes.                               #
     #############################################################################
+
     nb_batch = x.shape[0]
     D = np.prod(x.shape[1:])
     xflat = x.reshape(nb_batch, D)
-    out = xflat.dot(w) + b   
+    out = xflat.dot(w) + b
+    
 
     #############################################################################
     #                             FIN DE VOTRE CODE                             #
@@ -600,8 +602,8 @@ def softmax_loss(x, y, scale=1.0):
     score_clip = 1e-15 #prevent log(0) and x/0
     N = x.shape[0]
 
-    scores = np.exp(x-np.max(x))
-    probs = scores / (np.sum(scores ,axis=1, keepdims=True) + score_clip)    
+    scores = np.exp(x-np.max(x, axis=-1, keepdims=True))
+    probs = scores / (np.sum(scores ,axis=1, keepdims=True))    
     good_scores = probs[range(N), y] 
     good_scores = -np.log(good_scores+score_clip)
     loss = np.sum(good_scores)

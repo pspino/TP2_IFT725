@@ -99,7 +99,6 @@ class TwoLayerNeuralNet(object):
         scores_layer_1, cache_input_layer = forward_fully_connected(X, self.params['W1'], self.params['b1'])
         scores_layer_1, cached_relu = forward_relu(scores_layer_1)
         scores, cache_hidden_layer = forward_fully_connected(scores_layer_1, self.params['W2'], self.params['b2'])
-
         ############################################################################
         #                             FIN DE VOTRE CODE                            #
         ############################################################################
@@ -140,8 +139,8 @@ class TwoLayerNeuralNet(object):
 
         grads['W2'] = dw_hidden + self.reg * self.params['W2']
         grads['W1'] = dw_input + self.reg * self.params['W1']
-        grads['b2'] = db_hidden + self.reg * self.params['b2']
-        grads['b1'] = db_input + self.reg * self.params['b1']
+        grads['b2'] = db_hidden
+        grads['b1'] = db_input
 
         ############################################################################
         #                             FIN DE VOTRE CODE                            #
@@ -296,12 +295,10 @@ class FullyConnectedNeuralNet(object):
                                                                               self.params[self.pn('b', i)])
             if i != self.num_layers:
                 previous_score, cache[self.pn('relu', i)] = forward_relu(layer_score)
-
                 if self.use_dropout:
                     previous_score, cache[self.pn('dropout', i)] = forward_inverted_dropout(previous_score,
                                                                                             self.dropout_param)
         scores = layer_score
-
         ############################################################################
         #                             FIN DE VOTRE CODE                            #
         ############################################################################
@@ -326,7 +323,6 @@ class FullyConnectedNeuralNet(object):
         # régularisation L2 inclus un facteur de 0.5 pour simplifier l'expression  #
         # pour le gradient.                                                        #
         ############################################################################
-        
         loss, dout = softmax_loss(scores, y)        
         for i in range(1, self.num_layers + 1):
             loss += 0.5 * self.reg * np.sum(self.params[self.pn('W', i)] ** 2)
