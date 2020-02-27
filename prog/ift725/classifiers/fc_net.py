@@ -55,6 +55,11 @@ class TwoLayerNeuralNet(object):
         # ...                                                                      #
         ############################################################################
 
+        self.params['W1'] = np.random.randn(input_dim, hidden_dim) * weight_scale
+        self.params['W2'] = np.random.randn(hidden_dim, num_classes) * weight_scale
+
+        self.params['b1'] = np.zeros(hidden_dim)
+        self.params['b2'] = np.zeros(num_classes)
 
         ############################################################################
         #                             FIN DE VOTRE CODE                            #
@@ -91,7 +96,9 @@ class TwoLayerNeuralNet(object):
         #  deux couches.                                                           #
         #  NOTES: score est la sortie du réseau *SANS SOFTMAX*                     #
         ############################################################################
-
+        scores_layer_1, cache_input_layer = forward_fully_connected(X, self.params['W1'], self.params['b1'])
+        scores_layer_1, cached_relu = forward_relu(scores_layer_1)
+        scores, cache_hidden_layer = forward_fully_connected(scores_layer_1, self.params['W2'], self.params['b2'])
         ############################################################################
         #                             FIN DE VOTRE CODE                            #
         ############################################################################
@@ -123,6 +130,18 @@ class TwoLayerNeuralNet(object):
         # Note, les gradients doivent être stochez dans le dictionnaire `grads`    #
         #       du type grads['W1']=...                                            #
         ############################################################################
+        loss, dout = softmax_loss(scores, y)
+        loss += 0.5 * self.reg * np.sum(self.params['W1'] ** 2) + 0.5 * self.reg * np.sum(self.params['W2'] ** 2)
+
+        dx, dw_hidden, db_hidden = backward_fully_connected(dout, cache_hidden_layer)
+        dx = backward_relu(dx, cached_relu)
+        _, dw_input, db_input = backward_fully_connected(dx, cache_input_layer)
+
+        grads['W2'] = dw_hidden + self.reg * self.params['W2']
+        grads['W1'] = dw_input + self.reg * self.params['W1']
+        grads['b2'] = db_hidden
+        grads['b1'] = db_input
+
         ############################################################################
         #                             FIN DE VOTRE CODE                            #
         ############################################################################
@@ -148,7 +167,7 @@ class FullyConnectedNeuralNet(object):
 
     def __init__(self, hidden_dims, input_dim=3 * 32 * 32, num_classes=10,
                  dropout=0, use_batchnorm=False, reg=0.0,
-                 weight_scale=1e-2, dtype=np.float32, seed=None):
+                 weight_scale=1e-2, dtype=np.float32, seed=123):
         """
         Initialize a new FullyConnectedNet.
 
@@ -198,7 +217,13 @@ class FullyConnectedNeuralNet(object):
         #           self.params[param_name_W] = ...                                #
         #           self.params[param_name_b] = ...                                #
         ############################################################################
-
+        dims = [input_dim] + hidden_dims + [num_classes]
+        for i in range(0, self.num_layers):
+            if use_batchnorm and i != (self.num_layers-1):
+                self.params[self.pn('gamma',i+1)] = np.ones(dims[i+1])
+                self.params[self.pn('beta',i+1)] = np.zeros(dims[i+1])
+            self.params[self.pn('b',i+1)] = np.zeros(dims[i+1])
+            self.params[self.pn('W',i+1)] = np.random.randn(dims[i], dims[i+1])*weight_scale
         ############################################################################
         #                             FIN DE VOTRE CODE                            #
         ############################################################################
@@ -207,6 +232,7 @@ class FullyConnectedNeuralNet(object):
         # dropout layer so that the layer knows the dropout probability and the mode
         # (train / test). You can pass the same dropout_param to each dropout layer.
         self.dropout_param = {}
+
         if self.use_dropout:
             self.dropout_param = {'mode': 'train', 'p': dropout}
             if seed is not None:
@@ -239,7 +265,7 @@ class FullyConnectedNeuralNet(object):
 
         # Set train/test mode for batchnorm params and dropout param since they
         # behave differently during training and testing.
-        if self.dropout_param is not None:
+        if self.use_dropout:
             self.dropout_param['mode'] = mode
         if self.use_batchnorm:
             for bn_param in self.bn_params:
@@ -259,7 +285,22 @@ class FullyConnectedNeuralNet(object):
         # normalisation par lots; passer self.bn_params[1] pour la propagation de  #
         # la deuxième couche de normalisation par lots, etc.                       #
         ############################################################################
+        cache = {}
+        scores = X
+        for i in range(1, self.num_layers + 1):            
+            scores, cache[self.pn('layer', i)] = forward_fully_connected(scores,
+                                                                        self.params[self.pn('W', i)],
+                                                                        self.params[self.pn('b', i)])
+            if i != self.num_layers:
+                if self.use_batchnorm:
+                    scores, cache[self.pn('batch', i)] = forward_batch_normalization(scores, 
+                                                                                    self.params[self.pn('gamma', i)], 
+                                                                                    self.params[self.pn('beta', i)], 
+                                                                                    self.bn_params[i-1])
 
+                scores, cache[self.pn('relu', i)] = forward_relu(scores)
+                if self.use_dropout:
+                    scores, cache[self.pn('dropout', i)] = forward_inverted_dropout(scores, self.dropout_param)
         ############################################################################
         #                             FIN DE VOTRE CODE                            #
         ############################################################################
@@ -284,6 +325,20 @@ class FullyConnectedNeuralNet(object):
         # régularisation L2 inclus un facteur de 0.5 pour simplifier l'expression  #
         # pour le gradient.                                                        #
         ############################################################################
+        loss, dout = softmax_loss(scores, y)      
+        for i in range(1, self.num_layers + 1):
+            loss += 0.5 * self.reg * np.sum(self.params[self.pn('W', i)] ** 2)
+        dx = dout
+        for i in reversed(range(1, self.num_layers + 1)):
+            dx, dw_hidden, db_hidden = backward_fully_connected(dx, cache[self.pn('layer', i)])
+            grads[self.pn('W', i)] = dw_hidden + self.reg * self.params[self.pn('W', i)]
+            grads[self.pn('b', i)] = db_hidden + self.reg * self.params[self.pn('b', i)]
+            if i != 1:
+                if self.use_dropout:
+                    dx = backward_inverted_dropout(dx, cache[self.pn('dropout', i - 1)])
+                dx = backward_relu(dx, cache[self.pn('relu', i - 1)])
+                if self.use_batchnorm:
+                    dx, grads[self.pn('gamma',i-1)], grads[self.pn('beta',i-1)] = backward_batch_normalization(dx, cache[self.pn('batch',i-1)])
 
         ############################################################################
         #                             FIN DE VOTRE CODE                            #

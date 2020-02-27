@@ -35,6 +35,12 @@ def forward_fully_connected(x, w, b):
     # Vous devrez reformer les entrées en lignes.                               #
     #############################################################################
 
+    nb_batch = x.shape[0]
+    D = np.prod(x.shape[1:])
+    xflat = x.reshape(nb_batch, D)
+    out = xflat.dot(w) + b
+    
+
     #############################################################################
     #                             FIN DE VOTRE CODE                             #
     #############################################################################
@@ -68,7 +74,12 @@ def backward_fully_connected(dout, cache):
     # TODO: Implémentez la rétropropagation pour une couche pleinement          #
     #  connectée.                                                               #
     #############################################################################
-
+    nb_batch = x.shape[0]
+    tempX = x.reshape(x.shape[0],np.prod(x.shape[1:])).T
+    
+    dx = np.dot(dout, w.T).reshape(x.shape)
+    dw = np.dot(tempX, dout)
+    db = np.sum(dout, axis=0)
     #############################################################################
     #                             FIN DE VOTRE CODE                             #
     #############################################################################
@@ -90,7 +101,7 @@ def forward_relu(x):
     #############################################################################
     # TODO: Implémentez la propagation pour une couche ReLU.                    #
     #############################################################################
-
+    out = np.maximum(0, x)
     #############################################################################
     #                             FIN DE VOTRE CODE                             #
     #############################################################################
@@ -113,7 +124,9 @@ def backward_relu(dout, cache):
     #############################################################################
     # TODO: Implémentez la rétropropagation pour une couche ReLU.               #
     #############################################################################
-
+    temp_x = np.maximum(0,cache)
+    temp_x[temp_x > 0] = 1
+    dx = temp_x * dout
     #############################################################################
     #                             FIN DE VOTRE CODE                             #
     #############################################################################
@@ -322,9 +335,12 @@ def forward_inverted_dropout(x, dropout_param):
     #        en mode 'train'.  https://deepnotes.io/dropout
     ###########################################################################
     if mode == 'train':
-        cache = None
+        mask = np.random.binomial(1, p, size=x.shape) / p
+        out = x * mask
+        cache = (dropout_param, mask)
     elif mode == 'test':
-        cache = None
+        out = x
+        cache = (dropout_param, None)
 
     ###########################################################################
     #                            FIN DE VOTRE CODE                            #
@@ -350,7 +366,7 @@ def backward_inverted_dropout(dout, cache):
     #  le dropout inversé (inverted dropout).                                 #
     ###########################################################################
     if mode == 'train':
-        dx = None
+        dx = dout * mask
     elif mode == 'test':
         dx = dout
 
@@ -394,7 +410,7 @@ def forward_convolutional_naive(x, w, b, conv_param, verbose=0):
     #############################################################################
     #                             FIN DE VOTRE CODE                             #
     #############################################################################
-    cache = (x_pad, w, b, conv_param)
+    cache = None
 
     return out, cache
 
@@ -446,6 +462,7 @@ def forward_max_pooling_naive(x, pool_param):
     #############################################################################
     #                             FIN DE VOTRE CODE                             #
     #############################################################################
+    cache = None
     return out, cache
 
 
@@ -546,12 +563,14 @@ def svm_loss(x, y):
     - loss: Scalar giving the loss
     - dx: Gradient of the loss with respect to x
     """
-    N = x.shape[0]
+    N, C = x.shape
     #############################################################################
     # TODO: La perte SVM (ou Hinge Loss) en vous inspirant du tp1 mais sans     #
     #       régularisation                                                      #
     #############################################################################
-
+    margin = np.maximum(0, x - x[np.arange(N), y][:, np.newaxis] + 1.0)
+    margin[np.arange(x.shape[0]),y] = 0
+    loss = np.mean(np.dot(margin, np.ones(C).T))
     #############################################################################
     #                             FIN DE VOTRE CODE                             #
     #############################################################################
@@ -578,13 +597,14 @@ def softmax_loss(x, y, scale=1.0):
     - loss: Scalar giving the loss
     - dx: Gradient of the loss with respect to x
     """
-
     #############################################################################
     # TODO: La perte softmax en vous inspirant du tp1 mais sans régularisation  #
     #                                                                           #
-    #############################################################################
-
-
+    #############################################################################    
+    N = x.shape[0]
+    probs = np.exp(x - np.max(x, axis=1, keepdims=True))
+    probs /= np.sum(probs, axis=1, keepdims=True)
+    loss = -np.sum(np.log(probs[np.arange(N), y])) / N
     #############################################################################
     #                             FIN DE VOTRE CODE                             #
     #############################################################################

@@ -1,6 +1,8 @@
 # Code adapté de projets académiques de la professeur Fei Fei Li et de ses étudiants Andrej Karpathy, Justin Johnson et autres.
 # Version finale rédigée par Carl Lemaire, Vincent Ducharme et Pierre-Marc Jodoin
 
+import sys
+
 import numpy as np
 
 """
@@ -60,17 +62,17 @@ def sgd_momentum(w, dw, config=None):
     """
     if config is None:
         config = {}
-    config.setdefault('learning_rate', 1e-2) # variable "eta" das les notes du cours.
-    config.setdefault('momentum', 0.9) # variable "rho" das les notes du cours.
+    config.setdefault('learning_rate', 1e-2)  # variable "eta" das les notes du cours.
+    config.setdefault('momentum', 0.9)  # variable "rho" das les notes du cours.
     v = config.get('velocity', np.zeros_like(w))
 
-    next_w = None
     #############################################################################
     # TODO: Implémentez la formule de mise-à-jour à l'aide du momentum.         #
     # Stockez la valeur mise à jour dans la variable next_w. Vous devriez aussi #
     # utiliser et mettre à jour la vitesse v.                                   #
     #############################################################################
-
+    v = config['momentum']*v - config['learning_rate']*dw
+    next_w = w + v
     #############################################################################
     #                             FIN DE VOTRE CODE                             #
     #############################################################################
@@ -95,7 +97,7 @@ def rmsprop(x, dx, config=None):
     config.setdefault('learning_rate', 1e-2)
     config.setdefault('decay_rate', 0.99)
     config.setdefault('epsilon', 1e-8)
-    config.setdefault('cache', np.zeros_like(x)) # Variable "m" dans les notes
+    config.setdefault('cache', np.zeros_like(x))  # Variable "m" dans les notes
 
     next_x = None
     #############################################################################
@@ -104,7 +106,15 @@ def rmsprop(x, dx, config=None):
     # N'oubliez pas de mettre à jour la valeur cache stockée dans               #
     # config['cache'] (# Variable "m" dans les notes de cours)                  #
     #############################################################################
+    gamma = config.get('decay_rate')
+    eta = config.get('learning_rate')
+    epsilon = config.get('epsilon')
+    m = config.get('cache')
 
+    m = gamma * m + (1 - gamma) * dx ** 2
+    next_x = x - eta * dx / (np.sqrt(m) + epsilon)
+
+    config['cache'] = m
     #############################################################################
     #                             FIN DE VOTRE CODE                             #
     #############################################################################
