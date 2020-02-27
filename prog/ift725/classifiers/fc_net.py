@@ -224,22 +224,6 @@ class FullyConnectedNeuralNet(object):
                 self.params[self.pn('beta',i+1)] = np.zeros(dims[i+1])
             self.params[self.pn('b',i+1)] = np.zeros(dims[i+1])
             self.params[self.pn('W',i+1)] = np.random.randn(dims[i], dims[i+1])*weight_scale
-
-
-        #for i, layer in enumerate(hidden_dims):        
-            #layer_input_dim = self.params[self.pn('W', i)].shape[1] if i > 0 else input_dim
-            #self.params[self.pn('W', i + 1)] = np.random.randn(layer_input_dim, layer) * weight_scale
-            #self.params[self.pn('b', i + 1)] = np.zeros(layer)
-
-            #if use_batchnorm and i != (self.num_layers-1):
-            #    gamma_name = 'gamma' + str(i+1)
-            #    beta_name = 'beta' + str(i+1)
-            #    self.params[gamma_name] = np.ones(modif_hidden_dims[i])
-            #    self.params[beta_name] = np.zeros(modif_hidden_dims[i])
-
-        #self.params[self.pn('W', self.num_layers)] = np.random.randn(layer, num_classes) * weight_scale
-        #self.params[self.pn('b', self.num_layers)] = np.zeros(num_classes)
-
         ############################################################################
         #                             FIN DE VOTRE CODE                            #
         ############################################################################
