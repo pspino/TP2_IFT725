@@ -71,9 +71,8 @@ def sgd_momentum(w, dw, config=None):
     # Stockez la valeur mise à jour dans la variable next_w. Vous devriez aussi #
     # utiliser et mettre à jour la vitesse v.                                   #
     #############################################################################
-    m, lr = config.get('momentum'), config.get('learning_rate')
-    v = m*v + dw
-    next_w = w - lr*v
+    v = config['momentum']*v - config['learning_rate']*dw
+    next_w = w + v
     #############################################################################
     #                             FIN DE VOTRE CODE                             #
     #############################################################################

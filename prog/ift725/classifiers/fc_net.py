@@ -217,14 +217,28 @@ class FullyConnectedNeuralNet(object):
         #           self.params[param_name_W] = ...                                #
         #           self.params[param_name_b] = ...                                #
         ############################################################################
+        dims = [input_dim] + hidden_dims + [num_classes]
+        for i in range(0, self.num_layers):
+            if use_batchnorm and i != (self.num_layers-1):
+                self.params[self.pn('gamma',i+1)] = np.ones(dims[i+1])
+                self.params[self.pn('beta',i+1)] = np.zeros(dims[i+1])
+            self.params[self.pn('b',i+1)] = np.zeros(dims[i+1])
+            self.params[self.pn('W',i+1)] = np.random.randn(dims[i], dims[i+1])*weight_scale
 
-        for i, layer in enumerate(hidden_dims):
-            layer_input_dim = self.params[self.pn('W', i)].shape[1] if i > 0 else input_dim
-            self.params[self.pn('W', i + 1)] = np.random.randn(layer_input_dim, layer) * weight_scale
-            self.params[self.pn('b', i + 1)] = np.zeros(layer)
 
-        self.params[self.pn('W', self.num_layers)] = np.random.randn(layer, num_classes) * weight_scale
-        self.params[self.pn('b', self.num_layers)] = np.zeros(num_classes)
+        #for i, layer in enumerate(hidden_dims):        
+            #layer_input_dim = self.params[self.pn('W', i)].shape[1] if i > 0 else input_dim
+            #self.params[self.pn('W', i + 1)] = np.random.randn(layer_input_dim, layer) * weight_scale
+            #self.params[self.pn('b', i + 1)] = np.zeros(layer)
+
+            #if use_batchnorm and i != (self.num_layers-1):
+            #    gamma_name = 'gamma' + str(i+1)
+            #    beta_name = 'beta' + str(i+1)
+            #    self.params[gamma_name] = np.ones(modif_hidden_dims[i])
+            #    self.params[beta_name] = np.zeros(modif_hidden_dims[i])
+
+        #self.params[self.pn('W', self.num_layers)] = np.random.randn(layer, num_classes) * weight_scale
+        #self.params[self.pn('b', self.num_layers)] = np.zeros(num_classes)
 
         ############################################################################
         #                             FIN DE VOTRE CODE                            #
@@ -288,17 +302,21 @@ class FullyConnectedNeuralNet(object):
         # la deuxième couche de normalisation par lots, etc.                       #
         ############################################################################
         cache = {}
-        previous_score = X
-        for i in range(1, self.num_layers + 1):
-            layer_score, cache[self.pn('layer', i)] = forward_fully_connected(previous_score,
-                                                                              self.params[self.pn('W', i)],
-                                                                              self.params[self.pn('b', i)])
+        scores = X
+        for i in range(1, self.num_layers + 1):            
+            scores, cache[self.pn('layer', i)] = forward_fully_connected(scores,
+                                                                        self.params[self.pn('W', i)],
+                                                                        self.params[self.pn('b', i)])
             if i != self.num_layers:
-                previous_score, cache[self.pn('relu', i)] = forward_relu(layer_score)
+                if self.use_batchnorm:
+                    scores, cache[self.pn('batch', i)] = forward_batch_normalization(scores, 
+                                                                                    self.params[self.pn('gamma', i)], 
+                                                                                    self.params[self.pn('beta', i)], 
+                                                                                    self.bn_params[i-1])
+
+                scores, cache[self.pn('relu', i)] = forward_relu(scores)
                 if self.use_dropout:
-                    previous_score, cache[self.pn('dropout', i)] = forward_inverted_dropout(previous_score,
-                                                                                            self.dropout_param)
-        scores = layer_score
+                    scores, cache[self.pn('dropout', i)] = forward_inverted_dropout(scores, self.dropout_param)
         ############################################################################
         #                             FIN DE VOTRE CODE                            #
         ############################################################################
@@ -323,7 +341,7 @@ class FullyConnectedNeuralNet(object):
         # régularisation L2 inclus un facteur de 0.5 pour simplifier l'expression  #
         # pour le gradient.                                                        #
         ############################################################################
-        loss, dout = softmax_loss(scores, y)        
+        loss, dout = softmax_loss(scores, y)      
         for i in range(1, self.num_layers + 1):
             loss += 0.5 * self.reg * np.sum(self.params[self.pn('W', i)] ** 2)
         dx = dout
@@ -335,6 +353,8 @@ class FullyConnectedNeuralNet(object):
                 if self.use_dropout:
                     dx = backward_inverted_dropout(dx, cache[self.pn('dropout', i - 1)])
                 dx = backward_relu(dx, cache[self.pn('relu', i - 1)])
+                if self.use_batchnorm:
+                    dx, grads[self.pn('gamma',i-1)], grads[self.pn('beta',i-1)] = backward_batch_normalization(dx, cache[self.pn('batch',i-1)])
 
         ############################################################################
         #                             FIN DE VOTRE CODE                            #

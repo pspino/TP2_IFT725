@@ -124,7 +124,9 @@ def backward_relu(dout, cache):
     #############################################################################
     # TODO: Implémentez la rétropropagation pour une couche ReLU.               #
     #############################################################################
-    dx = np.multiply(dout, cache)
+    temp_x = np.maximum(0,cache)
+    temp_x[temp_x > 0] = 1
+    dx = temp_x * dout
     #############################################################################
     #                             FIN DE VOTRE CODE                             #
     #############################################################################
@@ -599,15 +601,20 @@ def softmax_loss(x, y, scale=1.0):
     # TODO: La perte softmax en vous inspirant du tp1 mais sans régularisation  #
     #                                                                           #
     #############################################################################
-    score_clip = 1e-15 #prevent log(0) and x/0
-    N = x.shape[0]
+    #score_clip = 1e-15 #prevent log(0) and x/0
+    #N = x.shape[0]
 
-    scores = np.exp(x-np.max(x, axis=-1, keepdims=True))
-    probs = scores / (np.sum(scores ,axis=1, keepdims=True))    
-    good_scores = probs[range(N), y] 
-    good_scores = -np.log(good_scores+score_clip)
-    loss = np.sum(good_scores)
-    loss /= N
+    #scores = np.exp(x-np.max(x, axis=-1, keepdims=True))
+    #probs = scores / (np.sum(scores ,axis=1, keepdims=True))    
+    #good_scores = probs[range(N), y] 
+    #good_scores = -np.log(good_scores+score_clip)
+    #loss = np.sum(good_scores)
+    #loss /= N
+
+    probs = np.exp(x - np.max(x, axis=1, keepdims=True))
+    probs /= np.sum(probs, axis=1, keepdims=True)
+    N = x.shape[0]
+    loss = -np.sum(np.log(probs[np.arange(N), y])) / N
     #############################################################################
     #                             FIN DE VOTRE CODE                             #
     #############################################################################
