@@ -39,7 +39,6 @@ def forward_fully_connected(x, w, b):
     D = np.prod(x.shape[1:])
     xflat = x.reshape(nb_batch, D)
     out = xflat.dot(w) + b
-    
 
     #############################################################################
     #                             FIN DE VOTRE CODE                             #
@@ -74,12 +73,14 @@ def backward_fully_connected(dout, cache):
     # TODO: Implémentez la rétropropagation pour une couche pleinement          #
     #  connectée.                                                               #
     #############################################################################
+
     nb_batch = x.shape[0]
-    tempX = x.reshape(x.shape[0],np.prod(x.shape[1:])).T
-    
+    tempX = x.reshape(x.shape[0], np.prod(x.shape[1:])).T
+
     dx = np.dot(dout, w.T).reshape(x.shape)
     dw = np.dot(tempX, dout)
     db = np.sum(dout, axis=0)
+
     #############################################################################
     #                             FIN DE VOTRE CODE                             #
     #############################################################################
@@ -101,7 +102,9 @@ def forward_relu(x):
     #############################################################################
     # TODO: Implémentez la propagation pour une couche ReLU.                    #
     #############################################################################
-    out = np.maximum(0, x)
+
+    out = np.maximum(x, 0)
+
     #############################################################################
     #                             FIN DE VOTRE CODE                             #
     #############################################################################
@@ -404,13 +407,37 @@ def forward_convolutional_naive(x, w, b, conv_param, verbose=0):
     #############################################################################
     # TODO: Implémentez la propagation pour la couche de convolution.           #
     # Astuces: vous pouvez utiliser la fonction np.pad pour le remplissage.     #
-    #############################################################################
+    #############################################################################  
+    pad = conv_param['pad']
+    stride = conv_param['stride']
+    N, C, H, W = x.shape
+    F, _, HH, WW = w.shape
+    Hp = int(1 + (H + 2 * pad - HH) / stride)
+    Wp = int(1 + (W + 2 * pad - WW) / stride)
 
+    out = np.zeros((N, F, Hp, Wp))
 
+    for n in range(N):
+        for f in range(F):
+            for i in range(Hp):
+                for j in range(Wp):
+                    for c in range(C):
+                        i_start = i * stride
+                        i_end = i_start + HH
+                        j_start = j * stride
+                        j_end = j_start + WW
+
+                        x_slice = np.pad(x[n, c], pad, mode="constant")
+                        x_slice = x_slice[i_start:i_end, j_start:j_end]
+                        multiple = np.multiply(x_slice, w[f, c])
+                        score = np.sum(multiple)
+
+                        out[n, f, i, j] += score
+            out[n, f] += b[f]
+    cache = (x, w, b, conv_param)
     #############################################################################
     #                             FIN DE VOTRE CODE                             #
     #############################################################################
-    cache = None
 
     return out, cache
 
@@ -432,7 +459,44 @@ def backward_convolutional_naive(dout, cache):
     #############################################################################
     # TODO: Implémentez la rétropropagation pour la couche de convolution       #
     #############################################################################
+    x, w, b, conv_param = cache
+    pad = conv_param['pad']
+    stride = conv_param['stride']
+    N, C, H, W = x.shape
+    F, _, HH, WW = w.shape
+    _, _, Hp, Wp = dout.shape
 
+    dx = np.zeros(x.shape)
+    dw = np.zeros(w.shape)
+    db = np.zeros(b.shape)
+
+    db = np.sum(dout, axis=(0, 2, 3))
+
+    x_padded = np.pad(x, ((0,), (0,), (pad,), (pad,)), 'constant')
+
+    for n in range(N):
+        for f in range(F):
+            for i in range(HH):
+                for j in range(WW):
+                    for k in range(Hp): 
+                        for l in range(Wp):
+                            for c in range(C):
+                                dw[f, c, i, j] += dout[n, f, k, l] * x_padded[n, c, stride * k + i, stride * l + j]
+
+    dx_padded = np.pad(dx, ((0,), (0,), (pad,), (pad,)), 'constant')
+
+    for n in range(N):
+        for f in range(F):
+            for i in range(Hp):
+                for j in range(Wp):
+                    for k in range(HH):
+                        for l in range(WW):
+                            for c in range(C):
+                                dx_padded[n, c, stride * i + k, stride * j + l] += dout[n, f, i, j] * w[f, c, k, l]
+    if pad:
+        dx = dx_padded[:, :, pad:-pad, pad:-pad]
+    else:
+        dx = dx_padded
     #############################################################################
     #                             FIN DE VOTRE CODE                             #
     #############################################################################
@@ -458,11 +522,28 @@ def forward_max_pooling_naive(x, pool_param):
     #############################################################################
     # TODO: Implémentez la propagation pour une couche de de max pooling        #
     #############################################################################
+    N, C, H, W = x.shape
+    pool_height = pool_param['pool_height']
+    pool_width = pool_param['pool_width']
+    stride = pool_param['stride']
+    Hp = int((H + 2 - pool_height) / stride)
+    Wp = int((W + 2 - pool_width) / stride)
 
+    out = np.zeros((N, C, Hp, Wp))
+    for n in range(N):
+        for c in range(C):
+            for i in range(Hp):
+                for j in range(Wp):
+                    i_start = i * stride
+                    i_end = i_start + pool_height
+                    j_start = j * stride
+                    j_end = j_start + pool_width
+
+                    out[n, c, i, j] = np.max(x[n, c, i_start:i_end, j_start:j_end])
     #############################################################################
     #                             FIN DE VOTRE CODE                             #
     #############################################################################
-    cache = None
+    cache = (x, pool_param)
     return out, cache
 
 
@@ -481,7 +562,27 @@ def backward_max_pooling_naive(dout, cache):
     #############################################################################
     # TODO: Implémentez la rétropropagation pour une couche de max pooling.     #
     #############################################################################
+    x, pool_param = cache
+    N, C, H, W = x.shape
+    _, _, Hp, Wp = dout.shape
+    pool_height = pool_param['pool_height']
+    pool_width = pool_param['pool_width']
+    stride = pool_param['stride']
 
+    dx = np.zeros(x.shape)
+    for n in range(N):
+        for c in range(C):
+            for i in range(Hp):
+                for j in range(Wp):
+                    i_start = i * stride
+                    i_end = i_start + pool_height
+                    j_start = j * stride
+                    j_end = j_start + pool_width
+
+                    temp_dx = np.zeros((pool_height, pool_width))
+                    idx = np.unravel_index(np.argmax(x[n, c, i_start:i_end, j_start:j_end]), temp_dx.shape)
+                    temp_dx[idx] = dout[n, c, i, j]
+                    dx[n, c, i_start:i_end, j_start:j_end] = temp_dx
     #############################################################################
     #                             FIN DE VOTRE CODE                             #
     #############################################################################
@@ -537,11 +638,11 @@ def backward_spatial_batch_normalization(dout, cache):
     """
     dx, dgamma, dbeta = None, None, None
 
-
     N, C, H, W = dout.shape
     dout_2d = np.moveaxis(dout, 1, -1)
     dout_2d = np.reshape(dout_2d, (N * H * W, C))
-    dx_2d, dgamma, dbeta = backward_batch_normalization(dout_2d, cache) # ou backward_batch_normalization_alternative(dout_2d, cache)
+    dx_2d, dgamma, dbeta = backward_batch_normalization(dout_2d,
+                                                        cache)  # ou backward_batch_normalization_alternative(dout_2d, cache)
     dx = np.reshape(dx_2d, (N, H, W, C))
     dx = np.moveaxis(dx, -1, 1)  # --> (N, C, H, W)
 

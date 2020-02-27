@@ -54,6 +54,15 @@ class ThreeLayerConvolutionalNet(object):
         # affine de sortie.                                                        #
         ############################################################################
 
+        C, H, W = input_dim
+
+        self.params['W1'] = np.random.randn(num_filters, C, filter_size, filter_size) * weight_scale
+        self.params['W2'] = np.random.randn(num_filters * int((H / 2)) * int((W / 2)), hidden_dim) * weight_scale
+        self.params['W3'] = np.random.randn(hidden_dim, num_classes) * weight_scale
+
+        self.params['b1'] = np.zeros(num_filters)
+        self.params['b2'] = np.zeros(hidden_dim)
+        self.params['b3'] = np.zeros(num_classes)
 
         ############################################################################
         #                             FIN DE VOTRE CODE                            #
@@ -90,6 +99,9 @@ class ThreeLayerConvolutionalNet(object):
         #  variable scores.                                                        #
         ############################################################################
 
+        out, conv_cache = forward_convolutional_relu_pool(X, W1, b1, conv_param, pool_param)
+        out, relu_cache = forward_fully_connected_transform_relu(out, W2, b2)
+        scores, score_cache = forward_fully_connected(out, W3, b3)
 
         ############################################################################
         #                             FIN DE VOTRE CODE                            #
@@ -107,6 +119,21 @@ class ThreeLayerConvolutionalNet(object):
         # grads[k] contient les gradients pour self.params[k]. N'oubliez pas       #
         # d'ajouter la régularisation L2!                                          #
         ############################################################################
+
+        loss, dx = softmax_loss(scores, y)
+        loss += 0.5 * self.reg * (np.sum(W1**2) + np.sum(W2**2) + np.sum(W3**2))
+
+        dx3, dW3, db3 = backward_fully_connected(dx, score_cache)
+        dx2, dW2, db2 = backward_fully_connected_transform_relu(dx3, relu_cache)
+        dx, dW1, db1 = backward_convolutional_relu_pool(dx2, conv_cache)
+
+        grads['W3'] = dW3 + self.reg * W3
+        grads['W2'] = dW2 + self.reg * W2
+        grads['W1'] = dW1 + self.reg * W1
+
+        grads['b3'] = db3 + self.reg * db3
+        grads['b2'] = db2 + self.reg * db2
+        grads['b1'] = db1 + self.reg * db1
 
         ############################################################################
         #                             FIN DE VOTRE CODE                            #
